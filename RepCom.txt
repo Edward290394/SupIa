@@ -1,0 +1,670 @@
+//PROCESAMIENTO DE IMAGENES
+clc
+clear 
+close all
+%Reducir o eliminar el ruido presente en la imagen
+%La delimitación se sobre ponga en la imagen original en RGB
+img = imread('imgNoise.jpg');
+subplot(3,3,1);
+imshow(img);
+title('imagene original');
+%obtengo cada expectro
+imgR =img(:,:,1);
+imgG =img(:,:,2);
+imgB =img(:,:,3);
+%Fin de primera pregunta
+%reducir el ruido 
+imgR=medfilt2(imgR);
+imgG=medfilt2(imgG);
+imgB=medfilt2(imgB);
+%recontruir imagen
+newimgR(:,:,1)=imgR;
+newimgR(:,:,2)=imgG;
+newimgR(:,:,3)=imgB;
+%Mostra Imagen
+subplot(3,3,2);
+imshow(newimgR);
+title('imagene sin ruido');
+%fin
+%Se desea observar la parte rojiza del cielo 
+%en menor intensidad e incrementar la tonalidad azul del cielo
+%obtener los nuevos expectros
+imgRed=newimgR(:,:,1);
+imgGree=newimgR(:,:,2);
+imgBlue=newimgR(:,:,3);
+imgRed=imgRed-75;
+imgBlu=imgBlue+95;
+ImgUnit(:,:,1)=imgRed;
+ImgUnit(:,:,2)=imgGree;
+ImgUnit(:,:,3)=imgBlue;
+%Mostrar imagen
+subplot(3,3,3);
+imshow(ImgUnit);
+title('imagene rojiza menor intensidad y azul mayor');
+%La zona de la imagen en la que se observa unos árboles tomen algo de tonalidad verde
+imgGren(:,:,2)=ImgUnit(:,:,2);
+aux=find(imgGren<10);
+for i=1: length(aux)
+    imgGren(aux(i))=255;
+end
+imgGren(:,:,1)=ImgUnit(:,:,1);
+imgGren(:,:,3)=ImgUnit(:,:,3);
+subplot(3,3,4);
+imshow(imgGren);
+title('arboles tonalidad verde ');
+%4:Se seleccione y se defina la zona de los árboles
+%La delimitación se sobre ponga en la imagen original en
+ig=rgb2gray(img);
+ig=imbinarize(ig,0.1);
+ig=~ig;
+props = regionprops(ig,'Area','Perimeter','BoundingBox','Image');
+a = find([props.Area] == max([props.Area]));
+subplot(3,3,5);
+imshow(imgGren);
+title("4 DEFINIR LA ZONA DE LOS ARBOLES");
+rectangle('Position',props(a).BoundingBox, 'EdgeColor','r', 'LineWidth', 2);
+%La delimitación se sobre ponga en la imagen original en RGB
+%bordes
+subplot(3,3,6)
+imshow(newimgR);
+title("delimitacion imagen original");
+hold on
+borde=bwboundaries(ig);
+for i=1:length(borde)
+ border = borde(i);
+plot(border{1 ,1}(:,2),border{1 ,1}(:,1), 'r','LineWidth',2);
+end
+hold off
+
+
+
+/////testeo para la tolbox/////
+clc  
+close all 
+clear all
+%leemos el archivo
+xds=xlsread('winequalityN.xlsm','MATLAB', 'B2:M2239');
+yds=xlsread('winequalityN.xlsm','MATLAB', 'N2:N2239');
+
+xprueba =xlsread('winequalityN.xlsm','TESTEO', 'B2:M961');
+yprueba =xlsread('winequalityN.xlsm','TESTEO', 'N2:N961');
+
+///////Procesamiento de imagenes////////////////////////////////////////////////////////
+
+
+///////////////////////
+clc
+close all 
+clear all
+%% REGRESION LOGÍSTICA
+X=[3 2.11 1.2];
+w=[0.5 -0.8 0.96 0.79];
+%introducido el bias
+x=[1, X];
+%regrecion logistica
+res=logsig(x*w');
+if res>=0.5
+    eti=1;
+else
+    eti=0;
+end
+fprintf('Valor Etiqueta %d \n', eti);
+
+%% TESTEO DEL PERCEPTRON
+% 2. Realizar el ejercicio de testeo del perceptrón el siguiente ejercicio.
+dsX =[5 2 7; 6 5 7; 2 2 1];
+dsY = [1 1 -1];
+
+%Matriz de pesos
+W=[0.8 0.25 -1.42 0.13];
+
+%Bias
+fil=size(dsX,1);
+bias=[1;1;1];
+%bias=ones(fil,1);
+dsX=[bias,dsX];
+dsX;
+%etiquetas predichas
+yHat=[];
+
+for i=1: fil
+    %realizar el producto punto entre los pesos (W) y valores de testeo (dsX)
+    %r=dot(dsX(i,:),W);
+    r=dsX(i,:)*W';
+    if r>=0
+        yHat=[yHat,1];
+    else
+        yHat=[yHat,-1];
+    end
+
+end
+
+%porcentaje de acierto
+aciertos=100*sum(yHat==dsY)/length(dsY)
+
+%porcentaje de error
+error=100*sum(yHat ~= dsY)/length(dsY)
+
+
+*******///////////////////KNN
+clc;
+close all;
+clear all;
+ 
+[imagenes ,labels]= readImages('train-images.idx3-ubyte','train-labels.idx1-ubyte');
+[ x , y , filas] = size(imagenes);
+ 
+xDataSet = zeros(filas,(x*y));
+ 
+for a=1:filas
+    filtro = edge(imagenes(:,:,a), 'canny','vertical') + edge(imagenes(:,:,a),'zerocross','horizontal') + edge(imagenes(:,:,a),'log','horizontal');
+    vectorIMG = reshape(filtro(:,:),1,[]);
+    xDataSet(a,1:(x*y)) = vectorIMG;
+end
+DS = [xDataSet,labels];
+ 
+%%
+ 
+% Cargar las imagenes y etiquetas de testeo
+[ testImagenes , yTestClass]= readImages('t10k-images.idx3-ubyte','t10k-labels.idx1-ubyte');
+ 
+[ x , y , filas] = size(testImagenes);
+% Generar el xTestClass
+xTestClass = zeros(filas,(x*y));
+for a=1:filas
+    filtro = edge(testImagenes(:,:,a), 'canny','vertical') + edge(testImagenes(:,:,a),'zerocross','horizontal') + edge(testImagenes(:,:,a),'log','horizontal');
+    vectorIMG = reshape(filtro(:,:),1,[]);
+    xTestClass(a,1:x*y) = vectorIMG;
+end
+ 
+%% Crear el modelo KNN
+tiempoInicio = tic;
+clc
+k = 3; %% numero de k 
+mdl = fitcknn(xDataSet,labels,'NumNeighbors',k,'Standardize',1);
+tiempoFinal = toc(tiempoInicio);
+disp("Tiempo de entrenamiento: "+ tiempoFinal +" s")
+ 
+%% Aciertos y fallas al testear KNN
+tiempoInicio = tic;
+ 
+[yPredichaTest,score,cost] = predict(mdl,xTestClass(:,:));
+comparacion = zeros(size(xTestClass,1),1);
+%%
+for a=1:size(xTestClass,1)
+    if yPredichaTest(a,1) == yTestClass(a,1)
+        comparacion(a,1) = 1;
+    end
+end
+aciertosTesteo = sum(comparacion);
+fallasTesteo = size(xTestClass,1) - aciertosTesteo;
+ 
+tiempoFinal = toc(tiempoInicio);
+disp(tiempoFinal)
+disp("Tiempo de testeo: "+ tiempoFinal +" s")
+%% Graficar resultados de testeo KNN
+ 
+grafico = [aciertosTesteo, fallasTesteo];
+figure(1)
+subplot(1,1,1)
+p = pie(grafico);
+ 
+pText = findobj(p,'Type','text');
+percentValues = get(pText,'String'); 
+txt = {'Aciertos: ';'Fallas: '}; 
+combinedtxt = strcat(txt,percentValues); 
+title('Testeo KNN ');
+pText(1).String = combinedtxt(1);
+pText(2).String = combinedtxt(2);
+ 
+%% Aciertos y fallas al testear con datos de entrenamiento KNN
+tiempoInicio = tic;
+ 
+[yPredicha,score,cost] = predict(mdl,xDataSet(:,:));
+comparacion = zeros(size(xDataSet,1),1);
+for a=1:size(xDataSet,1)
+    if yPredicha(a,1) == labels(a,1)
+    comparacion(a,1) = 1;
+    end
+end
+ 
+aciertosTrain = sum(comparacion);
+fallasTrain = size(yPredicha,1)- aciertosTrain; 
+ 
+tiempoFinal = toc(tiempoInicio);
+disp(tiempoFinal)
+ 
+%% Graficar resultados de testeo KNN
+ 
+grafico2 = [aciertosTrain, fallasTrain];
+figure(2)
+subplot(1,1,1)
+p2 = pie(grafico2);
+pText2 = findobj(p2,'Type','text');
+percentValues2 = get(pText2,'String'); 
+txt = {'Aciertos: ';'Fallas: '}; 
+combinedtxt2 = strcat(txt,percentValues2); 
+title('Entrenamiento KNN '+k);
+pText2(1).String = combinedtxt2(1);
+pText2(2).String = combinedtxt2(2);
+////////////////////////////////SVN///////////////////////////////////////////////////
+function [imgRecortada] = RecortarImagen(imagen) % ingresa una imagen como argumento y devuelve la imagen recortada
+    
+    umbral = graythresh(imagen); % calcular el umbral 
+    imagenBW = imbinarize(imagen,umbral); % transformar a imagen binaria
+    imagenBWLabel = bwlabel(imagenBW); % identificar los objetos en la imagen
+    propiedades = regionprops(imagenBWLabel); % determinar las propiedades del objeto   
+    caja = propiedades(1).BoundingBox; % se obtiene los puntos de la caja del objeto encontrado
+    
+    %Si hay mas de un objeto encontrado en la imagen solo obtiene el objeto
+    %mayor
+    if size(propiedades,1) > 1
+        caja2 = propiedades(2).BoundingBox;
+        if caja(1) + caja(3) > caja2(1) + caja2(3)
+        xInicial = caja(1);
+        yInicial = caja(2);
+        xFinal = caja(3);
+        yFinal = caja(4);
+        else
+            xInicial = caja2(1);
+            yInicial = caja2(2);
+            xFinal = caja2(3);
+            yFinal = caja2(4);
+        end
+    else
+        xInicial = caja(1);
+        yInicial = caja(2);
+        xFinal = caja(3);
+        yFinal = caja(4);
+    end
+    imgRecortada = imcrop(imagen,[xInicial yInicial xFinal yFinal]); % se recorta la imagen
+    imgRecortada = imresize(imgRecortada,[20 20]); % se redimensiona la imagen
+end
+
+
+Código para generar el Dataset y generar el modelo en la APP Classification Learner
+
+clc;
+close all;
+clear all;
+ 
+% Obtener las imagenes y las etiquetas
+[imagenes ,labels]= readImages('train-images.idx3-ubyte','train-labels.idx1-ubyte');
+[ x , y , filas] = size(imagenes);
+ 
+xDataSet = zeros(filas,400);
+ 
+for a=1:filas
+    filtro = edge(imagenes(:,:,a), 'canny','vertical') + edge(imagenes(:,:,a),'zerocross','horizontal') + edge(imagenes(:,:,a),'log','horizontal');
+    recortada = RecortarImagen(filtro);
+    vectorIMG = reshape(recortada(:,:),1,[]);
+    xDataSet(a,1:400) = vectorIMG;
+end
+ 
+% Armar el DataSet para generar el modelo del Arbol en la toolbox
+DS = [xDataSet,labels];
+
+
+Código para generar el xTestClass y el yTestClass para testear 
+
+% Cargar las imagenes y etiquetas de testeo
+[ testImagenes , yTestClass]= readImages('t10k-images.idx3-ubyte','t10k-labels.idx1-ubyte');
+ 
+[ x , y , filas] = size(testImagenes);
+% Generar el xTestClass 
+xTestClass = zeros(filas,(400));
+for a=1:filas
+    filtro = edge(testImagenes(:,:,a), 'canny','vertical') + edge(testImagenes(:,:,a),'zerocross','horizontal') + edge(testImagenes(:,:,a),'log','horizontal');
+    recortada = RecortarImagen(filtro);
+    vectorIMG = reshape(recortada(:,:),1,[]);
+    xTestClass(a,1:400) = vectorIMG;
+end
+
+
+Código para testear, se toma de la función de “predictFcn” que devuelve el modelo y se envía como parámetro la matriz xTestClass para tener la “yPredicha” que es una matriz con las etiquetas que ha predicho el modelo.
+
+yPredichaTest = ClasificadorSVM.predictFcn(xTestClass);
+comparacion = zeros(size(xTestClass,1),1);
+ 
+for a=1:size(xTestClass,1)
+    if yPredichaTest(a,1) == yTestClass(a,1)
+        comparacion(a,1) = 1;
+    end
+end
+ 
+aciertosTesteo = sum(comparacion);
+fallasTesteo = size(xTestClass,1) - aciertosTesteo;
+ 
+% Grafica los resultados de testeo
+grafico = [aciertosTesteo, fallasTesteo];
+figure(1)
+subplot(1,1,1)
+p = pie(grafico);
+ 
+pText = findobj(p,'Type','text');
+percentValues = get(pText,'String'); 
+txt = {'Aciertos: ';'Fallas: '}; 
+combinedtxt = strcat(txt,percentValues); 
+title('SVM - Test');
+pText(1).String = combinedtxt(1);
+pText(2).String = combinedtxt(2);
+
+
+Código para testear con los datos de entrenamiento, así mismo se toma de la función de “predictFcn” que devuelve el modelo y se envía como parámetro la matriz DS sin la última columna la cual pertenece a las etiquetas para tener la “yPredicha” que es una matriz con las etiquetas que ha predicho el modelo.
+
+yPredichaTest = ClasificadorSVM.predictFcn(xDataSet);
+comparacion = zeros(size(xTestClass,1),1);
+ 
+for a=1:size(xDataSet,1)
+    if yPredichaTest(a,1) == yDataSet(a,1)
+        comparacion(a,1) = 1;
+    end
+end
+ 
+aciertos = sum(comparacion);
+fallas = size(xTestClass,1) - aciertos;
+ 
+% Grafica los resultados de testeo
+grafico = [aciertos, fallas];
+figure(1)
+subplot(1,1,1)
+p = pie(grafico);
+ 
+pText = findobj(p,'Type','text');
+percentValues = get(pText,'String'); 
+txt = {'Aciertos: ';'Fallas: '}; 
+combinedtxt = strcat(txt,percentValues); 
+title('SVM – Test Entrenamiento');
+pText(1).String = combinedtxt(1);
+pText(2).String = combinedtxt(2);
+////balanceo suple///
+%1 blanco 4898
+%2 red    sobrante 
+clc  
+close all 
+clear all
+%leemos el archivo
+xdataSet = readmatrix('winequalityN.xlsm');
+%elimino la primera columna,porque los datos no son validos
+xdataSet(:,1) = [];
+%limpiar 
+%elimino los datos que tengan errores
+xdataSet(any(isnan(xdataSet),2),:)=[];
+%doy la etiqueta segun loq ue corresponda en el archivo
+%1= vino blanco
+ydataSet(1:4898,1) =1;
+%2=vino rojo 
+ydataSet(4898:6463,1) =2;
+
+%balancear data set 
+%unimos dx y dy para reducir el data set
+ds=[xdataSet,ydataSet];
+totalWhite=sum(ydataSet == 1);
+totalRed=sum(ydataSet == 2);
+%calcula el exedente
+totalEliminar=totalWhite-totalRed;
+%Eliminar datos para balancear  al azar
+for i = 1:totalEliminar
+ds(1,:) = [];
+end
+%separamos el data set de la variable ds
+xdataSet=ds(:,1:12);
+ydataSet=ds(:,13);
+%estandarizar 
+for j=1:size(xdataSet,1)
+    for i=1:size(xdataSet,2)
+        xNewMatriz(j,i)=(xdataSet(j,i)-min(xdataSet(j,:)))/(max(xdataSet(j,:)-min(xdataSet(j,:))));
+        if xNewMatriz(j,i)==0
+            xNewMatriz(j,i)=0.001;
+        end
+    end
+end
+
+[row,column]= size(xNewMatriz);
+ds=[xNewMatriz,ydataSet];
+division =row*0.70;
+xTrainClass=xNewMatriz(1:division,:);
+yTrainClass=ydataSet(1:division,1);
+xTestClass= xNewMatriz(division+1:end,:);
+yTestClass= ydataSet(division+1:end,1);
+targe=(yTrainClass==1:2);
+
+%%
+%Error de entrenamiento
+errorTrain=0;
+correctoTrain=0;
+for j=1:size(xTrainClass,1)
+yCorrecta=yTrainClass(j,1);
+y=myNeuralNetworkFunction(xTrainClass(j,:));
+[idx,class]=max(y);
+yPre=class;
+if yCorrecta==yPre;
+    correctoTrain=correctoTrain+1;
+end 
+if yCorrecta~=yPre;
+    errorTrain=errorTrain+1;
+end 
+end 
+total = size(xTrainClass,1);
+porcentajeErrorTrain =(errorTrain/total)*100;
+porcentajeCorrectoTrain = (correctoTrain/total)*100;
+display(porcentajeCorrectoTrain);
+display(porcentajeErrorTrain);
+%Errror de testeo 
+errorTest=0;
+correctoTest=0;
+for j=1:size(xTestClass,1)
+yCorrecta=yTestClass(j,1);
+y=myNeuralNetworkFunction(xTestClass(j,:));
+[idx,class]=max(y);
+yPre=class;
+if yCorrecta==yPre;
+    correctoTest=correctoTest+1;
+end 
+if yCorrecta~=yPre;
+    errorTest=errorTest+1;
+end 
+end 
+total = size(xTestClass,1);
+porcentajeErrorTest =(errorTest/total)*100;
+porcentajeCorrectoTest = (correctoTest/total)*100;
+display(porcentajeCorrectoTest);
+display(porcentajeErrorTest);
+
+
+%%
+%svm
+
+modelSVM = trainClassifierS(ds);
+%Error de entrenamiento
+errorTrain=0;
+correctoTrain=0;
+yPreTrain=modelSVM.predictFcn(xTrainClass);
+for j=1:size(xTrainClass,1)
+yCorrecta=yTrainClass(j,1);
+yPreUnitario=yPreTrain(j,1);
+if yCorrecta==yPreUnitario;
+    correctoTrain=correctoTrain+1;
+end 
+if yCorrecta~=yPreUnitario;
+    errorTrain=errorTrain+1;
+end 
+end 
+total = size(xTrainClass,1);
+porcentajeErrorTrain =(errorTrain/total)*100;
+porcentajeCorrectoTrain = (correctoTrain/total)*100;
+display(porcentajeCorrectoTrain);
+display(porcentajeErrorTrain);
+%Errror de testeo 
+errorTest=0;
+correctoTest=0;
+yPreTest=modelSVM.predictFcn(xTestClass);
+for j=1:size(xTestClass,1)
+yCorrecta=yTestClass(j,1);
+yPreUnitario=yPreTest(j,1);
+if yCorrecta==yPreUnitario;
+    correctoTest=correctoTest+1;
+end 
+if yCorrecta~=yPreUnitario;
+    errorTest=errorTest+1;
+end 
+end 
+total = size(xTestClass,1);
+porcentajeErrorTest =(errorTest/total)*100;
+porcentajeCorrectoTest = (correctoTest/total)*100;
+display(porcentajeCorrectoTest);
+display(porcentajeErrorTest);
+///////////RUTA OPTIMA//////
+////////////////UFNCION ////
+function[pl,pob]= tsp(alp,matrixAdj,size)
+
+pl=zeros(1,1);
+
+seed=[1:size];
+
+% creacion de nuetra poblacion permutada
+for i=1:150
+   pob(i,:)= seed(randperm(length(seed)));
+    
+end
+pobsize=length(pob);
+x=zeros(1,pobsize);
+padres=zeros(10,size);
+
+
+for k=1:alp
+for i=1:pobsize
+    x(i)=fitness(pob(i,:),matrixAdj);
+end
+%seleccion por ruleta;
+x=x/sum(x);
+
+for i=1:pobsize*.50
+    a=rand;
+    sig=0;
+    for j=1:pobsize
+    sig=sig+x(j);
+      if sig>a
+        padres(i,:)=pob(j,:);
+        break;
+      end
+    end
+end
+sons=zeros(10,size);
+ %cruza
+ for i=1:2:pobsize*.50
+    ar1=randi([1,pobsize*.50],1,1);
+    ar2=randi([1,pobsize*.50],1,1);
+    [ch1,ch2]=OX(padres(ar1,:),padres(ar2,:));
+    sons(i,:)=ch1;
+    sons(i+1,:)=ch2;
+ end
+
+%mutacion
+len=length(sons);
+    for j=1:4
+         a=randi([1,pobsize*.50],1,1);         
+         v=padres(a,:);
+         sons(len+j,:)=v(randperm(length(v)));
+    end
+ len=length(pob);
+ %add hujos to poblation 
+ for j=1:length(sons)
+       pob(len+j,:)=sons(j,:);
+ end
+ 
+ temp=pob;
+  %evaluacion
+   for i=1:length(pob(:,1))
+      pob(i,size+1)=fitness(temp(i,:),matrixAdj);
+   end
+   temp=zeros(10,size);
+   %sort poblation
+   
+   sortPop=sortrows(pob,size+1);
+   for i=1:pobsize
+    temp(i,:)=sortPop(i,1:size);
+   end
+   pob=temp;
+  
+   pl(k)=sortPop(1,size+1);
+end
+   pob=pob(1,:); 
+end
+
+%Cruza usando la cruza especial para permutaciones OX
+function[child1,child2]=OX(a,b)
+size=length(a);
+    ar1=randi([1,size],1,1);
+    ar2=randi([1,size],1,1);
+    while(ar1==ar2)
+        ar2=randi([1,size],1,1);
+    end
+    a1=min(ar1,ar2);
+    a2=max(ar1,ar2);
+    ox=a1;
+    child1=a(a1:a2);
+    child2=b(a1:a2);
+    
+    for i=1:length(a)
+        concurrent=ox;
+        if ox==length(a)
+            ox=0;
+        end
+        cy1=a(concurrent);
+        cy2=b(concurrent);
+        if ~checkP(cy2,child1)
+           child1(end+1)=cy2;
+        end
+        if ~checkP(cy1,child2)
+           child2(end+1)=cy1;
+        end      
+        ox=ox+1;
+    end
+    shiftby=a1;
+    child1=[child1(end - shiftby + 1: end), child1(1:end - shiftby)];
+    child2=[child2(end - shiftby + 1: end), child2(1:end - shiftby)];
+    
+end
+function fla=checkP(a,b)
+    fla=false;   
+    for i=1:length(b)
+       if a==b(i)
+           fla=true;
+           break;
+       end
+    end
+end
+
+%la funcion objetivo evalua que tanto cuesta el viaje completo 
+%lista ya permutada.
+function[fit]=fitness(c,g)
+
+   sigma=0;
+    for i=1:length(c)-1
+    sigma=sigma+g(c(i),c(i+1));
+    end
+    fit=sigma;
+end
+////////////////////SALIDA/////////////////////
+
+% valores de entrada 
+k=[  0   136  47  101  52  99 ;
+     136  0   89  237  188  235 ;
+     47  89  0   148  99  146 ;
+     101  237  148  0   116   176 ;
+     52  188  99  116   0   61 ;
+     99  235  146  176  61  0  ];
+ 
+ size=6;
+
+ [x,c]=tsp(1000,k,size);
+
+    sigma=0;
+    for i=1:length(c)-1
+      sigma=sigma+k(c(i),c(i+1));
+    end
+    disp('camino optimo')
+    disp(c);
+    disp('Peso Del Camino Optimo');
+    disp(sigma)
